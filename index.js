@@ -1,7 +1,8 @@
-import { read_cif } from "./cultures/cif.js";
 import { read_bmd } from "./cultures/bmd.js";
-import { load_fs } from "./cultures/fs.js";
 import { read_palette } from "./cultures/pcx.js";
+import { load_fs } from "./cultures/fs.js";
+import { load_registry } from "./cultures/registry.js";
+
 import { render } from './bmd_render.js';
 
 var state = {
@@ -22,10 +23,10 @@ function cancel(e) {
 }
 
 /**
- * @param {File} file
+ * @param {Blob} blob
  */
-async function load_bmd(file) {
-  state.bmd_file = await read_bmd(file);
+async function load_bmd(blob) {
+  state.bmd_file = await read_bmd(blob);
 
   /** @type {HTMLSelectElement} */
   const frames_select = document.getElementById("frames_select");
@@ -49,6 +50,32 @@ async function load_bmd(file) {
 }
 
 /**
+ * @param {File} file 
+ */
+async function load_object_file(file) {
+  const fs = await load_fs(file);
+  const registry = await load_registry(fs);
+
+  /**
+   * @param {string} name
+   */
+  window.load_landscape = async (name) => {
+    const lnd = registry.landscapes.get(name).def;
+    const bmd_file = lnd.GfxBobLibs[0];
+    const palette_name = lnd.GfxPalette[0];
+    const palette_file = registry.palettes.get(palette_name).def.gfxfile[0];
+
+    try {
+      state.palette = await read_palette(fs.open(palette_file));
+    } catch (ex) {
+      console.error(ex);
+    }
+
+    await load_bmd(fs.open(bmd_file));
+  }
+}
+
+/**
  * @param {DragEvent} e
  */
 function onDrop(e) {
@@ -61,13 +88,7 @@ function onDrop(e) {
   document.getElementById("filename").innerText = files[0].name;
 
   if (files[0].name.endsWith('.lib')) {
-    load_fs(files[0]).then(
-      fs => read_cif(fs.open('data\\engine2d\\inis\\landscapes\\landscapes.cif'))
-    ).then(
-      cif => {
-        console.table(cif[0].items);
-      }
-    )
+    load_object_file(files[0]);
     return false;
   }
 

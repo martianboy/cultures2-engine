@@ -7,15 +7,10 @@ class CulturesRegistry {
    */
   constructor(fs) {
     this.fs = fs;
-    this.load_promise = load();
 
     this.palettes = new Map();
     this.landscapes = new Map();
     this.landscape_types = new Map();
-  }
-
-  async load() {
-
   }
 
   async load_palettes() {
@@ -24,8 +19,31 @@ class CulturesRegistry {
 
     for (const section of cif) {
       if (section.name === 'GfxPalette256') {
-        
+        this.palettes.set(section.def?.editname[0], section);
       }
     }
   }
+
+  async load_landscapes() {
+    const PATH = 'data\\engine2d\\inis\\landscapes\\landscapes.cif';
+    const cif = await read_cif(this.fs.open(PATH));
+
+    for (const section of cif) {
+      if (section.name === 'GfxLandscape') {
+        this.landscapes.set(section.def.EditName[0], section);
+      }
+    }
+  }
+}
+
+/**
+ * @param {import('./fs').CulturesFS} fs 
+ */
+export async function load_registry(fs) {
+  const registry = new CulturesRegistry(fs);
+
+  await registry.load_palettes();
+  await registry.load_landscapes();
+
+  return registry;
 }

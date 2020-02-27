@@ -57,7 +57,35 @@ function read_3fd_cif(view) {
     }
   }
 
-  return sections;
+  return reduce_sections(sections);
+}
+
+/**
+ * @param {{ name: string; items: { key: string; value: number | string; }[]}} section 
+ */
+function reduce_section(section) {
+  switch (section.name) {
+    case 'text':
+      return {
+        name: 'text',
+        items: section.items
+      };
+    default:
+      return {
+        name: section.name,
+        def: section.items.reduce((obj, item) => {
+          obj[item.key] = item.value
+          return obj;
+        }, /** @type {Record<String, string | number>} */({})) 
+      };
+  }
+}
+
+/**
+ * @param {{ name: string; items: { key: string; value: number | string; }[]}[]} sections 
+ */
+function reduce_sections(sections) {
+  return sections.map(reduce_section);
 }
 
 /**
@@ -71,20 +99,25 @@ function read_041_cif(view) {
  * @param {string} line
  */
 function parse(line) {
-  const regex = /^([a-zA-Z0-9]+) (?:([0-9]+)|"([^"]+)")$/g;
+  const regex = /^([a-zA-Z0-9]+)((?:(?: "[^"]+")|(?: [0-9]+))+)$/g;
   const result = regex.exec(line);
 
   if (!result) return null;
 
   const key = result[1];
-  if (result[2] !== undefined) {
-    return { key, value: parseInt(result[2]) };
-  }
-  if (result[3] !== undefined) {
-    return { key, value: result[3] };
+  const param_regex = /(?:"([^"]+)")|([0-9]+)/g;
+  const matches = result[2].match(param_regex)
+
+  let value;
+  if (matches) {
+    value = matches.map(m => {
+      if (m.startsWith('"')) return m.slice(1, m.length - 1);
+
+      return parseInt(m);
+    });
   }
 
-  return null;
+  return { key, value };
 }
 
 /**
