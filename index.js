@@ -122,6 +122,31 @@ function renderSelectedFrame() {
   render(state.bmd_file, state.palette, selected_frame, ctx);
 }
 
+/**
+ * @param {string} frame_sequence
+ */
+window.animate_frames = function(frame_sequence) {
+  let i = 0;
+  let sequence = frame_sequence.split(' ').map(Number);
+
+  /** @type {HTMLCanvasElement} */
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const animate = () => {
+    if (i === Math.floor(i)) {
+      render(state.bmd_file, state.palette, sequence[i], ctx);
+    }
+
+    i += 0.5;
+    if (i === sequence.length) i = 0;
+    requestAnimationFrame(animate);
+  }
+
+  return requestAnimationFrame(animate);
+}
+
+
 function onWindowLoad() {
   let body = document.body;
 
