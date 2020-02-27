@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cultures 2 Engine - CIF Viewer</title>
+
+  <link href="/style.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+  <div id='controls'>
+    <span id='filename'></span>
+    <select id='frames_select'></select>
+
+    <label for="palette">Palette:</label>
+    <input type='file' id='palette'>
+
+    <button type='button' id='renderBtn'>Render</button>
+  </div>
+  <canvas id='canvas' width="800" height="600"></canvas>
+
+  <script src='./index.js' type="module"></script>
+</body>
+</html>
