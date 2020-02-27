@@ -56,6 +56,16 @@ async function load_object_file(file) {
   const fs = await load_fs(file);
   const registry = await load_registry(fs);
 
+  /** @type {HTMLSelectElement} */
+  const landscapes_select = document.getElementById("landscapes_select");
+
+  for (let name of registry.landscapes.keys()) {
+    let option = document.createElement("option");
+    option.text = name;
+    option.value = name;
+    landscapes_select.add(option);
+  }
+
   /**
    * @param {string} name
    */
@@ -63,7 +73,7 @@ async function load_object_file(file) {
     const lnd = registry.landscapes.get(name).def;
     const bmd_file = lnd.GfxBobLibs[0];
     const palette_name = lnd.GfxPalette[0];
-    const palette_file = registry.palettes.get(palette_name).def.gfxfile[0];
+    const palette_file = registry.palettes.get(palette_name).def.gfxfile;
 
     try {
       state.palette = await read_palette(fs.open(palette_file));
@@ -97,18 +107,6 @@ function onDrop(e) {
   }
 
   return false;
-}
-
-/** @param {Event} e */
-async function onPaletteSelect(e) {
-  /** @type {HTMLInputElement} */
-  let palette_input = e.target;
-
-  try {
-    state.palette = await read_palette(palette_input.files[0]);
-  } catch (ex) {
-    console.error(ex);
-  }
 }
 
 function renderSelectedFrame() {
@@ -156,15 +154,13 @@ function onWindowLoad() {
   body.addEventListener("dragenter", cancel);
   body.addEventListener("drop", onDrop);
 
-  /** @type {HTMLInputElement} */
-  let palette_input = document.getElementById("palette");
-  palette_input.addEventListener("change", onPaletteSelect);
-
   let renderBtn = document.getElementById("renderBtn");
   const frames_select = document.getElementById("frames_select");
+  const landscapes_select = document.getElementById("landscapes_select");
 
   renderBtn.addEventListener("click", renderSelectedFrame);
   frames_select.addEventListener("change", renderSelectedFrame);
+  landscapes_select.addEventListener("change", (e) => window.load_landscape(e.target.value));
 }
 
 window.addEventListener("load", onWindowLoad);

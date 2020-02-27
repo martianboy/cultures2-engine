@@ -19,7 +19,7 @@ class CulturesRegistry {
 
     for (const section of cif) {
       if (section.name === 'GfxPalette256') {
-        this.palettes.set(section.def?.editname[0], section);
+        this.palettes.set(section.def?.editname, section);
       }
     }
   }
@@ -30,7 +30,7 @@ class CulturesRegistry {
 
     for (const section of cif) {
       if (section.name === 'GfxLandscape') {
-        this.landscapes.set(section.def.EditName[0], section);
+        this.landscapes.set(section.def.EditName, section);
       }
     }
   }

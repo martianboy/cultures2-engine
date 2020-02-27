@@ -1,5 +1,6 @@
 import { read_file } from '../utils/file_reader.js';
 import { SequentialDataView } from '../utils/dataview.js';
+import { parse_section } from './cif_defs/parser.js';
 
 /**
  * @param {SequentialDataView} view 
@@ -38,7 +39,6 @@ function read_3fd_cif(view) {
   view.skip(1 + 4 + 4 + 4);
 
   decode_cif(view.sliceView(header.SizeOfTextTable));
-  let text_table = [];
 
   let section;
   let sections = [];
@@ -61,31 +61,10 @@ function read_3fd_cif(view) {
 }
 
 /**
- * @param {{ name: string; items: { key: string; value: number | string; }[]}} section 
- */
-function reduce_section(section) {
-  switch (section.name) {
-    case 'text':
-      return {
-        name: 'text',
-        items: section.items
-      };
-    default:
-      return {
-        name: section.name,
-        def: section.items.reduce((obj, item) => {
-          obj[item.key] = item.value
-          return obj;
-        }, /** @type {Record<String, string | number>} */({})) 
-      };
-  }
-}
-
-/**
  * @param {{ name: string; items: { key: string; value: number | string; }[]}[]} sections 
  */
 function reduce_sections(sections) {
-  return sections.map(reduce_section);
+  return sections.map(parse_section);
 }
 
 /**
@@ -105,19 +84,8 @@ function parse(line) {
   if (!result) return null;
 
   const key = result[1];
-  const param_regex = /(?:"([^"]+)")|([0-9]+)/g;
-  const matches = result[2].match(param_regex)
 
-  let value;
-  if (matches) {
-    value = matches.map(m => {
-      if (m.startsWith('"')) return m.slice(1, m.length - 1);
-
-      return parseInt(m);
-    });
-  }
-
-  return { key, value };
+  return { key, value: result[2].trim() };
 }
 
 /**
