@@ -1,3 +1,5 @@
+import { RGBColor } from "./pcx";
+
 export interface BmdHeader {
   magic: number;
   zero_0: number;
@@ -32,3 +34,4 @@ export interface BmdFile {
 }
 
 export function read_bmd(blob: Blob): Promise<BmdFile>;
+export function bmd_to_bmp(bmd_file: BmdFile, palette: RGBColor[], frame: number, ctx: CanvasRenderingContext2D): ImageData;

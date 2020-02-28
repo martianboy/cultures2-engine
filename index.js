@@ -9,6 +9,8 @@ var state = {
   /** @type {import('./cultures/pcx').RGBColor[] | null} */
   palette: null,
   /** @type {import('./cultures/bmd').BmdFile | null} */
+  bmd_s_file: null,
+  /** @type {import('./cultures/bmd').BmdFile | null} */
   bmd_file: null
 };
 
@@ -22,29 +24,29 @@ function cancel(e) {
   return false;
 }
 
-/**
- * @param {Blob} blob
- */
-async function load_bmd(blob) {
-  state.bmd_file = await read_bmd(blob);
-
+function reload_frames_options(frames) {
   /** @type {HTMLSelectElement} */
   const frames_select = document.getElementById("frames_select");
 
-  if (frames_select.options.length < state.bmd_file.header.num_frames) {
+  for (let i = 0; i < Math.min(frames.length, frames_select.options.length); i++) {
+    frames_select.options[i].text = `Frame ${frames[i]}`;
+    frames_select.options[i].value = frames[i];
+  }
+
+  if (frames_select.options.length < frames.length) {
     for (
       let i = frames_select.options.length;
-      i < state.bmd_file.header.num_frames;
+      i < frames.length;
       i++
     ) {
       let option = document.createElement("option");
-      option.text = `Frame ${i}`;
-      option.value = i.toString();
+      option.text = `Frame ${frames[i]}`;
+      option.value = frames[i].toString();
       frames_select.add(option);
     }
   } else {
-    while (state.bmd_file.header.num_frames < frames_select.options.length) {
-      frames_select.options.remove(state.bmd_file.header.num_frames);
+    while (frames.length < frames_select.options.length) {
+      frames_select.options.remove(frames.length);
     }
   }
 }
@@ -72,6 +74,7 @@ async function load_object_file(file) {
   window.load_landscape = async (name) => {
     const lnd = registry.landscapes.get(name).def;
     const bmd_file = lnd.GfxBobLibs[0];
+    const bmd_s_file = lnd.GfxBobLibs[1];
     const palette_name = lnd.GfxPalette[0];
     const palette_file = registry.palettes.get(palette_name).def.gfxfile;
 
@@ -81,7 +84,13 @@ async function load_object_file(file) {
       console.error(ex);
     }
 
-    await load_bmd(fs.open(bmd_file));
+    reload_frames_options([... new Set(lnd.GfxFrames[lnd.GfxFrames.length - 1])]);
+    state.bmd_file = await read_bmd(fs.open(bmd_file));
+    state.bmd_s_file = await read_bmd(fs.open(bmd_s_file));
+
+    document.getElementById("filename").innerText = bmd_file;
+
+    renderSelectedFrame();
   }
 }
 
@@ -110,6 +119,8 @@ function onDrop(e) {
 }
 
 function renderSelectedFrame() {
+  if (!state.bmd_file) return;
+
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -117,7 +128,7 @@ function renderSelectedFrame() {
   const frames_select = document.getElementById("frames_select");
   const selected_frame = parseInt(frames_select.value);
 
-  render(state.bmd_file, state.palette, selected_frame, ctx);
+  render(state.bmd_file, state.bmd_s_file, state.palette, selected_frame, ctx);
 }
 
 /**
@@ -129,7 +140,7 @@ window.animate_frames = function(frame_sequence) {
 
   /** @type {HTMLCanvasElement} */
   const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: true });
 
   const animate = () => {
     if (i === Math.floor(i)) {
