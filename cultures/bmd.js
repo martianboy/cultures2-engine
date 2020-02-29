@@ -143,29 +143,17 @@ export function bmd_to_bmp(bmd_file, palette, frame, ctx) {
     bmp.data[idx + 3] = alpha;
   }
 
-  /**
-   * @param {number} x 
-   * @param {number} y 
-   */
-  function set_transparent_pixel(x, y) {
-    let idx = y * width * 4 + x * 4;
-    // bmp.data[idx + 0] = 0;
-    // bmp.data[idx + 1] = 0;
-    // bmp.data[idx + 2] = 0;
-    // bmp.data[idx + 3] = 0;
-  }
-
   for (let row = 0; row < frame_count; row++) {
     const indent = bmd_file.rows[row + frame_start].indent;
-    let i = 0;
-
-    while (i < indent) {
-      set_transparent_pixel(i++, row);
-    }
+    let i = indent;
 
     let pixel_block_length = pixels.getUint8(pixels_ptr++);
 
     while (pixel_block_length !== 0) {
+      if (pixel_block_length === 0x80) {
+        console.log('0x' + pixels_ptr.toString(16));
+      }
+
       if (pixel_block_length < 0x80) {
         for (let j = 0; j < pixel_block_length; j++) {
           let color, alpha;
@@ -177,7 +165,7 @@ export function bmd_to_bmp(bmd_file, palette, frame, ctx) {
           } else if (frame_type === 1) {
             alpha = 0xff;
             color = palette[pixels.getUint8(pixels_ptr++)];
-          } else if (frame_type === 2) {
+          } else { // if (frame_type === 2) {
             alpha = 0x80;
             color = { red: 0, green: 0, blue: 0 };
           }
@@ -186,14 +174,10 @@ export function bmd_to_bmp(bmd_file, palette, frame, ctx) {
         }
       } else {
         for (let j = 0; j < pixel_block_length - 0x80; j++) {
-          set_transparent_pixel(i++, row);
+          i++;
         }
       }
       pixel_block_length = pixels.getUint8(pixels_ptr++);
-    }
-
-    while (i < width) {
-      set_transparent_pixel(i++, row);
     }
   }
 
