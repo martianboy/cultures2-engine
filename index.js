@@ -217,13 +217,31 @@ function onWindowLoad() {
 
 window.addEventListener("load", onWindowLoad);
 
-window.load_hoixdpae = async (path) => {
+window.load_map = async (path) => {
   const blob = state.fs?.open(path);
   const sections = await read_map_data(blob);
 
-  console.log(sections.hoixzisl.content);
-  console.log(sections.hoixehml.section_length);
-
   const { width, height } = sections.hoixzisl.content;
   console.log(`${sections.hoixehml.section_length} - ${width} * ${height} = ${sections.hoixehml.section_length - width * height}`);
+  console.log(`Actual elevation data points: ${sections.hoixehml.content.elevation.length}`);
+
+  /** @type {HTMLCanvasElement} */
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d", { alpha: true });
+
+  const elevation = sections.hoixehml.content.elevation;
+  const image = ctx.createImageData(width, height);
+  for (let i = 0; i < elevation.length; i++) {
+    image.data[4 * i + 0] = elevation[i];
+    image.data[4 * i + 1] = elevation[i];
+    image.data[4 * i + 2] = elevation[i];
+    image.data[4 * i + 3] = 0xFF;
+  }
+
+  const bmp = await createImageBitmap(image);
+
+  // ctx?.scale(2, 2);
+  ctx?.clearRect(0, 0, 800, 600);
+  ctx?.drawImage(bmp, 0, 0);
+  // ctx?.scale(1, 1);
 }

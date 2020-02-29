@@ -14,6 +14,10 @@ export class SequentialDataView {
     return this.view.buffer;
   }
 
+  get eof() {
+    return this.position >= this.buffer.byteLength;
+  }
+
   /**
    * @param {number} position
    */
