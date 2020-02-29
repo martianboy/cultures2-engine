@@ -217,31 +217,56 @@ function onWindowLoad() {
 
 window.addEventListener("load", onWindowLoad);
 
-window.load_map = async (path) => {
+window.load_map = async (path, section, t = (v, ...a) => v) => {
   const blob = state.fs?.open(path);
   const sections = await read_map_data(blob);
 
-  const { width, height } = sections.hoixzisl.content;
-  console.log(`${sections.hoixehml.section_length} - ${width} * ${height} = ${sections.hoixehml.section_length - width * height}`);
-  console.log(`Actual elevation data points: ${sections.hoixehml.content.elevation.length}`);
+  let { width, height } = sections.hoixzisl.content;
+
+  if (
+    [
+      "hoixtlml",
+      "hoixvlml",
+      "hoixplml",
+      "hoixocml",
+      "hoixwtml",
+      "hoixsmml",
+      "hoixrpml",
+      "hoixbwml",
+      "hoixbbml",
+      "hoixorml",
+      "hoixfhml",
+      "hoixocal",
+    ].includes(section)
+  ) {
+    width = width * 2;
+    height = height * 2;
+  }
+
+  console.log(`${width} x ${height}`);
 
   /** @type {HTMLCanvasElement} */
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d", { alpha: true });
 
-  const elevation = sections.hoixehml.content.elevation;
+  const data = sections[section].content.data;
+  const range = new Set(Array.from(data).sort((a, b) => a - b));
+  console.log(range);
+
+  const max = data.reduce((max, v) => max >= v ? max : v, -Infinity);
+
   const image = ctx.createImageData(width, height);
-  for (let i = 0; i < elevation.length; i++) {
-    image.data[4 * i + 0] = elevation[i];
-    image.data[4 * i + 1] = elevation[i];
-    image.data[4 * i + 2] = elevation[i];
+  for (let i = 0; i < data.length; i++) {
+    image.data[4 * i + 0] = t(data[i], max);
+    image.data[4 * i + 1] = t(data[i], max);
+    image.data[4 * i + 2] = t(data[i], max);
     image.data[4 * i + 3] = 0xFF;
   }
 
   const bmp = await createImageBitmap(image);
 
   // ctx?.scale(2, 2);
-  ctx?.clearRect(0, 0, 800, 600);
+  ctx?.clearRect(0, 0, 1200, 900);
   ctx?.drawImage(bmp, 0, 0);
   // ctx?.scale(1, 1);
 }
