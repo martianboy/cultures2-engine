@@ -51,7 +51,15 @@ function map_parser(value, types) {
   const r_key = /^(?:"([^"]+)")|([0-9]+) /;
   const key = value.match(r_key)[1] || value.match(r_key)[2];
 
-  const val = literal_parser(value.replace(r_key, ''), { is_array: types[1].endsWith('[]'), is_boolean: types[1] === 'boolean' });
+  let val
+  
+  switch (types[1]) {
+    case 'bmd':
+      const _v = literal_parser(value.replace(r_key, ''), { is_array: true, is_boolean: false });
+      val = { bmd: _v[0], shadow: _v[1] };
+    default:
+      val = literal_parser(value.replace(r_key, ''), { is_array: types[1].endsWith('[]'), is_boolean: types[1] === 'boolean' });
+  }
 
   return [key, val];
 }
@@ -80,6 +88,11 @@ function default_parser(section, def) {
         val[key] = literal_parser(value, { is_array: true, is_boolean: false });
         break;
 
+      case 'bmd':
+        const _v = literal_parser(value, { is_array: true, is_boolean: false });
+        val[key] = { bmd: _v[0], shadow: _v[1] };
+        break;
+
       case 'number[][]':
       case 'string[][]':
         if (!Array.isArray(val[key])) val[key] = [];
@@ -90,7 +103,10 @@ function default_parser(section, def) {
         const r = /\[([a-z]+),\s*([a-z]+(?:\[\])?)\]/;
         const types = type.match(r);
         if (!types) throw new Error(`Invalid type declaration ${type}`);
-        val[key] = map_parser(value, types.slice(1));
+
+        if (!val[key]) val[key] = {};
+        const entry = map_parser(value, types.slice(1));
+        val[key][entry[0]] = entry[1];
     }
   }
 

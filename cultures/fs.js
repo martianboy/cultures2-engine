@@ -28,7 +28,7 @@ class CulturesFS {
    * @returns {Blob}
    */
   open(path) {
-    const fi = this.files.get(path);
+    const fi = this.files.get(path.toLowerCase());
     if (!fi) throw new Error(`File not found: ${path}`);
 
     return this.datafile.slice(fi.offset, fi.offset + fi.length);

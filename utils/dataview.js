@@ -82,6 +82,11 @@ export class SequentialDataView {
     return this.sliceAsString(length);
   }
 
+  getShortString() {
+    let length = this.getUint8();
+    return this.sliceAsString(length);
+  }
+
   getZeroTerminatedString() {
     const pos = this.position;
     let i = 0;

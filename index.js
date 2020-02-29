@@ -2,6 +2,7 @@ import { read_bmd } from "./cultures/bmd.js";
 import { read_palette } from "./cultures/pcx.js";
 import { load_fs } from "./cultures/fs.js";
 import { load_registry } from "./cultures/registry.js";
+import { read_map_data } from './cultures/map.js';
 
 import { render } from './bmd_render.js';
 
@@ -11,7 +12,12 @@ var state = {
   /** @type {import('./cultures/bmd').BmdFile | null} */
   bmd_s_file: null,
   /** @type {import('./cultures/bmd').BmdFile | null} */
-  bmd_file: null
+  bmd_file: null,
+
+  animation_frame: 0,
+
+  /** @type {import('./cultures/fs').CulturesFS | null} */
+  fs: null
 };
 
 /**
@@ -24,38 +30,54 @@ function cancel(e) {
   return false;
 }
 
-function reload_frames_options(frames) {
+/**
+ * 
+ * @param {string} id 
+ * @param {{ text: string; value: string; }[]} options 
+ */
+function reload_options(id, options) {
   /** @type {HTMLSelectElement} */
-  const frames_select = document.getElementById("frames_select");
+  const select = document.getElementById(id);
 
-  for (let i = 0; i < Math.min(frames.length, frames_select.options.length); i++) {
-    frames_select.options[i].text = `Frame ${frames[i]}`;
-    frames_select.options[i].value = frames[i];
+  for (let i = 0; i < Math.min(options.length, select.options.length); i++) {
+    select.options[i].text = options[i].text;
+    select.options[i].value = options[i].value;
   }
-
-  if (frames_select.options.length < frames.length) {
+  
+  if (select.options.length < options.length) {
     for (
-      let i = frames_select.options.length;
-      i < frames.length;
+      let i = select.options.length;
+      i < options.length;
       i++
     ) {
       let option = document.createElement("option");
-      option.text = `Frame ${frames[i]}`;
-      option.value = frames[i].toString();
-      frames_select.add(option);
+      option.text = options[i].text;
+      option.value = options[i].value;
+      select.add(option);
     }
   } else {
-    while (frames.length < frames_select.options.length) {
-      frames_select.options.remove(frames.length);
+    while (options.length < select.options.length) {
+      select.options.remove(options.length);
     }
   }
+}
+
+/**
+ * @param {number[]} frames 
+ */
+function reload_frames_options() {
+  const select = document.getElementById('frame_group_select');
+  const frames = select.value.split(',').map(Number);
+
+  reload_options('frames_select', frames.map(f => ({ text: `Frame ${f}`, value: f.toString() })));
+  renderSelectedFrame();
 }
 
 /**
  * @param {File} file 
  */
 async function load_object_file(file) {
-  const fs = await load_fs(file);
+  const fs = state.fs = await load_fs(file);
   const registry = await load_registry(fs);
 
   /** @type {HTMLSelectElement} */
@@ -72,9 +94,9 @@ async function load_object_file(file) {
    * @param {string} name
    */
   window.load_landscape = async (name) => {
-    const lnd = registry.landscapes.get(name).def;
-    const bmd_file = lnd.GfxBobLibs[0];
-    const bmd_s_file = lnd.GfxBobLibs[1];
+    const lnd = state.lnd = registry.landscapes.get(name).def;
+    const bmd_file = lnd.GfxBobLibs.bmd;
+    const bmd_s_file = lnd.GfxBobLibs.shadow;
     const palette_name = lnd.GfxPalette[0];
     const palette_file = registry.palettes.get(palette_name).def.gfxfile;
 
@@ -84,13 +106,20 @@ async function load_object_file(file) {
       console.error(ex);
     }
 
-    reload_frames_options([... new Set(lnd.GfxFrames[lnd.GfxFrames.length - 1])]);
+    reload_options('frame_group_select', Object.entries(lnd.GfxFrames).map(([i, frames]) => ({ text: i.toString(), value: frames.join(',') })));
+    reload_frames_options(); // [... new Set(lnd.GfxFrames[Object.keys(lnd.GfxFrames)[0]])]);
     state.bmd_file = await read_bmd(fs.open(bmd_file));
     state.bmd_s_file = await read_bmd(fs.open(bmd_s_file));
 
     document.getElementById("filename").innerText = bmd_file;
 
     renderSelectedFrame();
+
+    if (lnd.GfxLoopAnimation) {
+      animate_frames();
+    } else {
+      cancelAnimationFrame(state.animation_frame);
+    }
   }
 }
 
@@ -118,6 +147,16 @@ function onDrop(e) {
   return false;
 }
 
+function onFrameGroupChanged(e) {
+  reload_frames_options();
+
+  if (state.lnd.GfxLoopAnimation) {
+    animate_frames();
+  } else {
+    cancelAnimationFrame(state.animation_frame);
+  }
+}
+
 function renderSelectedFrame() {
   if (!state.bmd_file) return;
 
@@ -131,30 +170,30 @@ function renderSelectedFrame() {
   render(state.bmd_file, state.bmd_s_file, state.palette, selected_frame, ctx);
 }
 
-/**
- * @param {string} frame_sequence
- */
-window.animate_frames = function(frame_sequence) {
+const animate_frames = function() {
   let i = 0;
-  let sequence = frame_sequence.split(' ').map(Number);
+  /** @type {HTMLSelectElement} */
+  const frames_select = document.getElementById("frames_select");
+  let sequence = Array.prototype.slice.call(frames_select.options).map(option => parseInt(option.value));
 
   /** @type {HTMLCanvasElement} */
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d", { alpha: true });
 
+  cancelAnimationFrame(state.animation_frame);
+
   const animate = () => {
     if (i === Math.floor(i)) {
-      render(state.bmd_file, state.palette, sequence[i], ctx);
+      render(state.bmd_file, state.bmd_s_file, state.palette, sequence[i], ctx);
     }
 
     i += 0.5;
     if (i === sequence.length) i = 0;
-    requestAnimationFrame(animate);
+    state.animation_frame = requestAnimationFrame(animate);
   }
 
-  return requestAnimationFrame(animate);
+  state.animation_frame = requestAnimationFrame(animate);
 }
-
 
 function onWindowLoad() {
   let body = document.body;
@@ -167,11 +206,24 @@ function onWindowLoad() {
 
   let renderBtn = document.getElementById("renderBtn");
   const frames_select = document.getElementById("frames_select");
+  const frame_group_select = document.getElementById("frame_group_select");
   const landscapes_select = document.getElementById("landscapes_select");
 
   renderBtn.addEventListener("click", renderSelectedFrame);
+  frame_group_select.addEventListener("change", onFrameGroupChanged);
   frames_select.addEventListener("change", renderSelectedFrame);
   landscapes_select.addEventListener("change", (e) => window.load_landscape(e.target.value));
 }
 
 window.addEventListener("load", onWindowLoad);
+
+window.load_hoixdpae = async (path) => {
+  const blob = state.fs?.open(path);
+  const sections = await read_map_data(blob);
+
+  console.log(sections.hoixzisl.content);
+  console.log(sections.hoixehml.section_length);
+
+  const { width, height } = sections.hoixzisl.content;
+  console.log(`${sections.hoixehml.section_length} - ${width} * ${height} = ${sections.hoixehml.section_length - width * height}`);
+}
