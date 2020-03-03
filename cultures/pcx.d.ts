@@ -4,4 +4,5 @@ export interface RGBColor {
   blue: number;
 }
 
-export function read_palette(buf: Blob): Promise<RGBColor[]>;
+export function pcx_read_palette(buf: Blob): Promise<RGBColor[]>;
+export function pcx_read(blob: Blob): Promise<ImageData>;
