@@ -1,4 +1,3 @@
-import { read_palette } from './pcx.js';
 import { read_cif } from './cif.js';
 
 class CulturesRegistry {

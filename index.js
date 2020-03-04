@@ -1,10 +1,11 @@
 import { read_bmd } from "./cultures/bmd.js";
-import { read_palette } from "./cultures/pcx.js";
+import { pcx_read_palette } from "./cultures/pcx.js";
 import { load_fs } from "./cultures/fs.js";
 import { load_registry } from "./cultures/registry.js";
 import { read_map_data } from './cultures/map.js';
 
 import { render } from './bmd_render.js';
+import { pcx_read } from "./cultures/pcx.js";
 
 var state = {
   /** @type {import('./cultures/pcx').RGBColor[] | null} */
@@ -19,6 +20,8 @@ var state = {
   /** @type {import('./cultures/fs').CulturesFS | null} */
   fs: null
 };
+
+window.state = state;
 
 /**
  * @param {DragEvent} e
@@ -101,7 +104,7 @@ async function load_object_file(file) {
     const palette_file = registry.palettes.get(palette_name).def.gfxfile;
 
     try {
-      state.palette = await read_palette(fs.open(palette_file));
+      state.palette = await pcx_read_palette(fs.open(palette_file));
     } catch (ex) {
       console.error(ex);
     }
@@ -200,7 +203,6 @@ function onWindowLoad() {
 
   // Tells the browser that we *can* drop on this target
   body.addEventListener("dragover", cancel);
-  body.addEventListener("dragover", cancel);
   body.addEventListener("dragenter", cancel);
   body.addEventListener("drop", onDrop);
 
@@ -235,8 +237,8 @@ window.load_map = async (path, section, t = (v, ...a) => v) => {
       "hoixbwml",
       "hoixbbml",
       "hoixorml",
-      "hoixfhml",
-      "hoixocal",
+      "hoixbsml",
+      "hoixoaml",
     ].includes(section)
   ) {
     width = width * 2;
@@ -255,18 +257,56 @@ window.load_map = async (path, section, t = (v, ...a) => v) => {
 
   const max = data.reduce((max, v) => max >= v ? max : v, -Infinity);
 
+  const colorMap = new Map();
+  for (const x of range) {
+    colorMap.set(x, Math.floor(Math.random() * 0xFFFFFF));
+  }
+  colorMap.set(0, 0);
+
   const image = ctx.createImageData(width, height);
   for (let i = 0; i < data.length; i++) {
-    image.data[4 * i + 0] = t(data[i], max);
-    image.data[4 * i + 1] = t(data[i], max);
-    image.data[4 * i + 2] = t(data[i], max);
+    const mappedColor = colorMap.get(data[i]);
+    const color = [
+      mappedColor & 0xFF,
+      (mappedColor >> 8) & 0xFF,
+      (mappedColor >> 16) & 0xFF,
+    ];
+
+    image.data[4 * i + 0] = t(data[i], max, color[0]);
+    image.data[4 * i + 1] = t(data[i], max, color[1]);
+    image.data[4 * i + 2] = t(data[i], max, color[2]);
     image.data[4 * i + 3] = 0xFF;
   }
 
   const bmp = await createImageBitmap(image);
 
   // ctx?.scale(2, 2);
-  ctx?.clearRect(0, 0, 1200, 900);
   ctx?.drawImage(bmp, 0, 0);
+  ctx?.clearRect(bmp.width, 0, 1200, 900);
+  ctx?.clearRect(0, bmp.height, bmp.width, 900);
   // ctx?.scale(1, 1);
+
+  return sections;
+}
+
+/**
+ * @param {string} path
+ */
+window.load_pcx = async (path) => {
+  const blob = state.fs?.open(path);
+  if (!blob) {
+    throw new Error('File not found.');
+  }
+
+  const img = await pcx_read(blob);
+  const bmp = await createImageBitmap(img);
+
+  /** @type {HTMLCanvasElement} */
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d", { alpha: true });
+
+  // ctx?.scale(2, 2);
+  ctx?.drawImage(bmp, 0, 0);
+  ctx?.clearRect(bmp.width, 0, 1200, 900);
+  ctx?.clearRect(0, bmp.height, bmp.width, 900);
 }
