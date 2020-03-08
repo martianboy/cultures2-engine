@@ -1,8 +1,9 @@
 import { common_decoding } from './common.js';
 import { common_decoding2 } from './common2.js';
+import { dictionary } from './hoixdpae.js';
 
-export * from './hoixdpae.js';
 export * from './hoixzisl.js';
+
 
 export const hoixehml = common_decoding;
 export const hoixapml = common_decoding;
@@ -24,5 +25,12 @@ export const hoixoaml = common_decoding2;
 export const hoixrbme = common_decoding;
 export const hoix1mme = common_decoding;
 export const hoiximme = common_decoding;
+export const hoixdpae = dictionary;
 export const hoixapme = common_decoding2;
 export const hoixbpme = common_decoding2;
+
+export const hoixdtae = dictionary;
+export const hoix1tme = common_decoding;
+export const hoix2tme = common_decoding;
+export const hoix3tme = common_decoding;
+export const hoix4tme = common_decoding;

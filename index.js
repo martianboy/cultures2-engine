@@ -18,7 +18,10 @@ var state = {
   animation_frame: 0,
 
   /** @type {import('./cultures/fs').CulturesFS | null} */
-  fs: null
+  fs: null,
+
+  /** @type {import('./cultures/fs').CulturesFS | null} */
+  custom_map: null,
 };
 
 window.state = state;
@@ -143,6 +146,14 @@ function onDrop(e) {
     return false;
   }
 
+  if (files[0].name.endsWith('.c2m')) {
+    load_fs(files[0]).then(custom_map => {
+      state.custom_map = custom_map;
+    }, ex => {
+      console.error(ex);
+    });
+  }
+
   if (files[0].name.endsWith('.bmd')) {
     load_bmd(files[0]);
   }
@@ -221,8 +232,21 @@ window.addEventListener("load", onWindowLoad);
 
 window.load_map = async (path, section, t = (v, ...a) => v) => {
   const blob = state.fs?.open(path);
-  const sections = await read_map_data(blob);
+  if (!blob) return;
 
+  const sections = await read_map_data(blob);
+  return drawMap(sections, section, t);
+}
+
+window.load_user_map = async (section, t = (v, ...a) => v) => {
+  const blob = state.custom_map?.open('currentusermap\\map.dat');
+  if (!blob) return;
+
+  const sections = await read_map_data(blob);
+  return drawMap(sections, section, t);
+}
+
+const drawMap = async (sections, section, t = (v, ...a) => v) => {
   let { width, height } = sections.hoixzisl.content;
 
   if (

@@ -17,6 +17,8 @@ export async function common_decoding(blob) {
     unk_len_dup: view.getUint32(), // = header.section_length - 5
     /** @type {Uint8Array=} */
     data: undefined,
+    /** @type {string[]} */
+    blocks: [],
     range: new Set()
   };
 
@@ -28,13 +30,17 @@ export async function common_decoding(blob) {
 
     if (head > 0x80) {
       const value = view.getUint8();
+      content.blocks.push(`${head - 128} x ${value}`);
       for (let i = 0; i < head - 0x80; i++) {
         data[count++] = value;
       }
     } else {
+      let str = `${head}:`;
       for (let i = 0; i < head; i++) {
         data[count++] = view.getUint8();
+        str += ` ${data[count - 1]}`;
       }
+      content.blocks.push(str);
     }
   }
 
