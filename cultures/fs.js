@@ -17,6 +17,13 @@ class CulturesFS {
   }
 
   /**
+   * @param {string} path 
+   */
+  exists(path) {
+    return this.files.has(path.toLowerCase());
+  }
+
+  /**
    * @returns {IterableIterator<import('./fs').FileInfo>}
    */
   ls() {

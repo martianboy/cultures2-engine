@@ -334,3 +334,45 @@ window.load_pcx = async (path) => {
   ctx?.clearRect(bmp.width, 0, 1200, 900);
   ctx?.clearRect(0, bmp.height, bmp.width, 900);
 }
+
+window.bmd_stats = async () => {
+  if (!state.fs) return;
+
+  /** @type {Record<string, { width: number; height: number; }>} */
+  let stats = {};
+
+  for (const fi of state.fs.ls()) {
+    if (!fi.path.endsWith('.bmd') || fi.path.endsWith('_s.bmd')) continue;
+
+    try {
+      const bmd = await read_bmd(state.fs.open(fi.path));
+      let bmd_s = null;
+
+      if (state.fs.exists(fi.path.replace('.bmd', '_s.bmd')))
+        bmd_s = await read_bmd(state.fs.open(fi.path.replace('.bmd', '_s.bmd')));
+
+      stats[fi.path] = bmd.frames.reduce((s, f, i) => {
+        if (f.width > s.width) s.width = f.width;
+        if (f.len > s.height) s.height = f.len;
+
+        return s;
+      }, { width: 0, height: 0});
+
+      if (bmd_s) {
+        stats[fi.path] = bmd_s.frames.reduce((s, f) => {
+          if (bmd_s) {
+            if (f.width > s.width) s.width = f.width;
+            if (f.len > s.height) s.height = f.len;
+          }
+          
+          return s;
+        }, stats[fi.path]);
+      }
+    } catch (ex) {
+      console.error('Error while reading BMD file', fi.path);
+      console.error(ex);
+    }
+  }
+
+  console.table(stats);
+}

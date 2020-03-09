@@ -19,6 +19,7 @@ export class CulturesFS {
   constructor(datafile: File, files: IterableIterator<FileInfo>);
   ls(): IterableIterator<FileInfo>;
   open(path: string): Blob;
+  exists(path: string): boolean;
 }
 
 export function load_fs(datafile: File): Promise<CulturesFS>;
