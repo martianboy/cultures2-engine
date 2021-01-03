@@ -22,9 +22,12 @@ var state = {
 
   /** @type {import('./cultures/fs').CulturesFS | null} */
   custom_map: null,
+
+  /** @type {File | null} */
+  saved_game: null,
 };
 
-window.state = state;
+globalThis.state = state;
 
 /**
  * @param {DragEvent} e
@@ -99,7 +102,7 @@ async function load_object_file(file) {
   /**
    * @param {string} name
    */
-  window.load_landscape = async (name) => {
+  globalThis.load_landscape = async (name) => {
     const lnd = state.lnd = registry.landscapes.get(name).def;
     const bmd_file = lnd.GfxBobLibs.bmd;
     const bmd_s_file = lnd.GfxBobLibs.shadow;
@@ -156,6 +159,10 @@ function onDrop(e) {
 
   if (files[0].name.endsWith('.bmd')) {
     load_bmd(files[0]);
+  }
+
+  if (files[0].name.endsWith('.sav')) {
+    state.saved_game = files[0];
   }
 
   return false;
@@ -217,20 +224,24 @@ function onWindowLoad() {
   body.addEventListener("dragenter", cancel);
   body.addEventListener("drop", onDrop);
 
+  /** @type {HTMLButtonElement} */
   let renderBtn = document.getElementById("renderBtn");
+  /** @type {HTMLSelectElement} */
   const frames_select = document.getElementById("frames_select");
+  /** @type {HTMLSelectElement} */
   const frame_group_select = document.getElementById("frame_group_select");
+  /** @type {HTMLSelectElement} */
   const landscapes_select = document.getElementById("landscapes_select");
 
   renderBtn.addEventListener("click", renderSelectedFrame);
   frame_group_select.addEventListener("change", onFrameGroupChanged);
   frames_select.addEventListener("change", renderSelectedFrame);
-  landscapes_select.addEventListener("change", (e) => window.load_landscape(e.target.value));
+  landscapes_select.addEventListener("change", (e) => globalThis.load_landscape(landscapes_select.value));
 }
 
-window.addEventListener("load", onWindowLoad);
+globalThis.addEventListener("load", onWindowLoad);
 
-window.load_map = async (path, section, t = (v, ...a) => v) => {
+globalThis.load_map = async (path, section, t = (v, ...a) => v) => {
   const blob = state.fs?.open(path);
   if (!blob) return;
 
@@ -238,11 +249,21 @@ window.load_map = async (path, section, t = (v, ...a) => v) => {
   return drawMap(sections, section, t);
 }
 
-window.load_user_map = async (section, t = (v, ...a) => v) => {
+globalThis.load_user_map = async (section, t = (v, ...a) => v) => {
   const blob = state.custom_map?.open('currentusermap\\map.dat');
   if (!blob) return;
 
   const sections = await read_map_data(blob);
+  return drawMap(sections, section, t);
+}
+
+/**
+ * @param {string} section
+ */
+globalThis.load_saved_game = async (section, t = (v, ...a) => v) => {
+  if (!state.saved_game) return;
+
+  const sections = await read_map_data(state.saved_game);
   return drawMap(sections, section, t);
 }
 
@@ -275,6 +296,8 @@ const drawMap = async (sections, section, t = (v, ...a) => v) => {
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d", { alpha: true });
 
+  if (!ctx) throw new Error('Could not get 2d context');
+
   const data = sections[section].content.data;
   const range = new Set(Array.from(data).sort((a, b) => a - b));
   console.log(range);
@@ -304,10 +327,11 @@ const drawMap = async (sections, section, t = (v, ...a) => v) => {
 
   const bmp = await createImageBitmap(image);
 
-  // ctx?.scale(2, 2);
-  ctx?.drawImage(bmp, 0, 0);
-  ctx?.clearRect(bmp.width, 0, 1200, 900);
-  ctx?.clearRect(0, bmp.height, bmp.width, 900);
+  ctx.imageSmoothingEnabled = false;
+  ctx.scale(4, 4);
+  ctx.drawImage(bmp, 0, 0);
+  ctx.clearRect(bmp.width, 0, 1200, 900);
+  ctx.clearRect(0, bmp.height, bmp.width, 900);
   // ctx?.scale(1, 1);
 
   return sections;
@@ -316,7 +340,7 @@ const drawMap = async (sections, section, t = (v, ...a) => v) => {
 /**
  * @param {string} path
  */
-window.load_pcx = async (path) => {
+globalThis.load_pcx = async (path) => {
   const blob = state.fs?.open(path);
   if (!blob) {
     throw new Error('File not found.');
@@ -329,13 +353,12 @@ window.load_pcx = async (path) => {
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d", { alpha: true });
 
-  // ctx?.scale(2, 2);
   ctx?.drawImage(bmp, 0, 0);
   ctx?.clearRect(bmp.width, 0, 1200, 900);
   ctx?.clearRect(0, bmp.height, bmp.width, 900);
 }
 
-window.bmd_stats = async () => {
+globalThis.bmd_stats = async () => {
   if (!state.fs) return;
 
   /** @type {Record<string, { width: number; height: number; }>} */

@@ -110,7 +110,7 @@ export async function read_bmd(blob) {
  * @param {number} frame
  * @param {CanvasRenderingContext2D} ctx
  */
-export function bmd_to_bmp(bmd_file, palette, frame, ctx) {
+export function bmd_to_bmp(bmd_file, palette, frame, ctx, pixel_level = 0) {
   if (!palette || !bmd_file) return;
   const frame_type = bmd_file.frames[frame].type;
   if (frame_type !== 1 && frame_type !== 4 && frame_type !== 2) {

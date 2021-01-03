@@ -1,3 +1,4 @@
 canvas {
   margin: 24px;
+  image-rendering: pixelated;
 }

@@ -23,8 +23,10 @@ export const hoixoaml = common_decoding2;
 // export const hoixfhml = common_decoding;
 // export const hoixocal = common_decoding2;
 export const hoixrbme = common_decoding;
+export const hoixcvme = common_decoding;
 export const hoix1mme = common_decoding;
 export const hoiximme = common_decoding;
+
 export const hoixdpae = dictionary;
 export const hoixapme = common_decoding2;
 export const hoixbpme = common_decoding2;
@@ -34,3 +36,6 @@ export const hoix1tme = common_decoding;
 export const hoix2tme = common_decoding;
 export const hoix3tme = common_decoding;
 export const hoix4tme = common_decoding;
+
+export const hoixdlae = dictionary;
+export const hoixalme = common_decoding2;

@@ -1,0 +1,43 @@
+body, ul, li, select {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: auto;
+}
+
+body {
+  font-size: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 300px 250px auto;
+  justify-content: stretch;
+  align-content: stretch;
+  height: 100vh;
+}
+
+#hoix-sections, #canvas, #maps {
+  height: 100%;
+  width: 100%;
+}
+
+#maps ul {
+  font-size: 1em;
+}
+
+#maps li {
+  list-style: none;
+}
+
+#maps a {
+  padding: .25em 1em;
+}
+
+#maps a:hover {
+  background-color: lightgoldenrodyellow;
+}
+
+#maps a.active {
+  background-color: lightskyblue;
+}

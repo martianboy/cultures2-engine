@@ -55,6 +55,10 @@ class CulturesRegistry {
       }
     }
   }
+
+  list_maps() {
+    return [...this.fs.ls()].filter(fi => /\\map.dat$/.test(fi.path))
+  }
 }
 
 /**
